@@ -2,8 +2,8 @@ package org.denis.gui;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
-import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
+import java.nio.file.Paths;
 
 public class Form extends JFrame {
 
@@ -32,9 +32,6 @@ public class Form extends JFrame {
 
 	private void createUIComponents() {
 		// TODO: place custom component creation code here
-		DefaultMutableTreeNode top =
-				new DefaultMutableTreeNode("The Java Series");
-		tree = new JTree(top);
 	}
 
 	/**
