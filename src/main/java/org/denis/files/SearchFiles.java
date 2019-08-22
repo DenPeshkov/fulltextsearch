@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.TreeSet;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 
@@ -17,11 +19,11 @@ public class SearchFiles {
 
 	static private class Finder extends SimpleFileVisitor<Path> {
 
-		public List<Path> getFiles() {
+		public Iterable<Path> getFiles() {
 			return files;
 		}
 
-		private final List<Path> files = new ArrayList<>();
+		private final TreeSet<Path> files = new TreeSet<>();
 
 		private final PathMatcher matcher;
 
@@ -47,15 +49,28 @@ public class SearchFiles {
 		}
 
 		@Override
+		public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+			//System.out.println(dir);
+			return CONTINUE;
+		}
+
+		@Override
 		public FileVisitResult visitFileFailed(Path file, IOException exc) {
-			exc.printStackTrace();
+			//exc.printStackTrace();
 			return CONTINUE;
 		}
 	}
 
-	public static List<Path> traverseTree(Path dir, String extension) throws IOException {
+	public static Iterable<Path> traverseTree(Path dir, String extension) throws IOException {
 		Finder finder = new Finder(extension);
 		Files.walkFileTree(dir, finder);
 		return finder.getFiles();
+	}
+
+	public static void main(String[] args) throws IOException {
+		Iterable<Path> paths = traverseTree(Paths.get("/home/denis/Desktop"), "*.txt");
+		for (Path i : paths) {
+			System.out.println(i);
+		}
 	}
 }

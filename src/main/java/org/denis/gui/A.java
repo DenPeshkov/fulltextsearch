@@ -33,7 +33,7 @@ public class A extends JPanel {
 	/**
 	 * Construct a A
 	 */
-	public A(File dir) {
+	public A(Path dir) throws IOException {
 		setLayout(new BorderLayout());
 
 		// Make a tree list with all the nodes, and make it a JTree
@@ -64,9 +64,8 @@ public class A extends JPanel {
 			curTop.add(curDir);
 		}
 
-		List<Path> paths = SearchFiles.traverseTree(Paths.get("/"), "*");
-
-
+		//List<Path> paths = SearchFiles.traverseTree(Paths.get("/"), "*");
+		return null;
 	}
 
 	public Dimension getMinimumSize() {
@@ -80,7 +79,7 @@ public class A extends JPanel {
 	/**
 	 * Main: make a Frame, add a A
 	 */
-	public static void main(String[] av) {
+	public static void main(String[] av) throws IOException {
 
 		JFrame frame = new JFrame("A");
 		frame.setForeground(Color.black);
@@ -88,11 +87,11 @@ public class A extends JPanel {
 		Container cp = frame.getContentPane();
 
 		if (av.length == 0) {
-			cp.add(new A(new File(".")));
+			cp.add(new A(Paths.get("/home/denis/")));
 		} else {
 			cp.setLayout(new BoxLayout(cp, BoxLayout.X_AXIS));
 			for (int i = 0; i < av.length; i++)
-				cp.add(new A(new File(av[i])));
+				cp.add(new A(Paths.get(av[i])));
 		}
 
 		frame.pack();
