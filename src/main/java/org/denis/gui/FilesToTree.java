@@ -15,7 +15,7 @@ public class FilesToTree {
 		map.put(null, treeRootNode);
 		for (Path path : paths) {
 
-			Path root = path.getRoot();
+			Path root = path.getRoot();  //TODO учитывать общие пути
 
 			if (!map.containsKey(root)) {
 				DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(root);
