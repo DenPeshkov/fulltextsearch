@@ -4,6 +4,7 @@ import org.denis.files.SearchFiles;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -20,6 +21,7 @@ public class Form extends JFrame {
 	private JTextField textToSearch;
 	private JTree tree;
 	private JTextField extension;
+	private JButton search;
 	private JFileChooser fileChooser = new JFileChooser();
 
 	public Form() {
@@ -40,6 +42,9 @@ public class Form extends JFrame {
 		textFile.setBorder(BorderFactory.createTitledBorder("Text"));
 		mPanel.setMinimumSize(new Dimension(1000, 1000));
 
+		((DefaultTreeModel) tree.getModel()).setRoot(null);
+		tree.setRootVisible(false);
+
 		directory.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -48,6 +53,23 @@ public class Form extends JFrame {
 				int result = fileChooser.showOpenDialog(Form.this);
 				if (result == JFileChooser.APPROVE_OPTION)
 					pathText.setText(fileChooser.getSelectedFile().toString());
+			}
+		});
+
+		search.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				DefaultMutableTreeNode node = null;
+				try {
+					if (!pathText.getText().isEmpty()) {
+						Iterable<Path> paths = SearchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText());
+						System.out.println(paths);
+						node = FilesToTree.getNode(paths);
+					}
+				} catch (IOException exp) {
+					throw new RuntimeException(exp);
+				}
+				((DefaultTreeModel) tree.getModel()).setRoot(node);
 			}
 		});
 	}
@@ -76,7 +98,7 @@ public class Form extends JFrame {
 	 */
 	private void $$$setupUI$$$() {
 		mPanel = new JPanel();
-		mPanel.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(3, 4, new Insets(5, 5, 5, 5), -1, -1));
+		mPanel.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(3, 5, new Insets(5, 5, 5, 5), -1, -1));
 		mPanel.setAutoscrolls(false);
 		mPanel.setBackground(new Color(-1));
 		mPanel.setDoubleBuffered(false);
@@ -92,7 +114,7 @@ public class Form extends JFrame {
 		scrollPane1.setViewportView(tree);
 		final JScrollPane scrollPane2 = new JScrollPane();
 		scrollPane2.setHorizontalScrollBarPolicy(31);
-		mPanel.add(scrollPane2, new com.intellij.uiDesigner.core.GridConstraints(2, 2, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(200, 200), new Dimension(600, 600), null, 0, false));
+		mPanel.add(scrollPane2, new com.intellij.uiDesigner.core.GridConstraints(2, 2, 1, 3, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(200, 200), new Dimension(600, 600), null, 0, false));
 		textFile = new JTextArea();
 		textFile.setBackground(new Color(-1));
 		textFile.setEditable(true);
@@ -105,7 +127,7 @@ public class Form extends JFrame {
 		textToSearch.setForeground(new Color(-16777216));
 		textToSearch.setInheritsPopupMenu(false);
 		textToSearch.setMargin(new Insets(2, 5, 2, 5));
-		mPanel.add(textToSearch, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 3, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTHWEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+		mPanel.add(textToSearch, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 4, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTHWEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
 		pathText = new JTextField();
 		pathText.setBackground(new Color(-1));
 		pathText.setCaretColor(new Color(-16777216));
@@ -114,6 +136,14 @@ public class Form extends JFrame {
 		pathText.setInheritsPopupMenu(false);
 		pathText.setMargin(new Insets(2, 5, 2, 5));
 		mPanel.add(pathText, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 3, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTHWEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+		extension = new JTextField();
+		extension.setBackground(new Color(-1));
+		mPanel.add(extension, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTH, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+		search = new JButton();
+		search.setBackground(new Color(-8207728));
+		search.setForeground(new Color(-16777216));
+		search.setText("Search");
+		mPanel.add(search, new com.intellij.uiDesigner.core.GridConstraints(1, 4, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
 		directory = new JButton();
 		directory.setBackground(new Color(-1907998));
 		directory.setForeground(new Color(-16777216));
@@ -123,9 +153,6 @@ public class Form extends JFrame {
 		directory.setOpaque(true);
 		directory.setText("...");
 		mPanel.add(directory, new com.intellij.uiDesigner.core.GridConstraints(1, 3, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_EAST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-		extension = new JTextField();
-		extension.setBackground(new Color(-1));
-		mPanel.add(extension, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTH, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
 	}
 
 	/**
