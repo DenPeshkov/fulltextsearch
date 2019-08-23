@@ -1,8 +1,13 @@
 package org.denis.gui;
 
+import org.denis.files.SearchFiles;
+
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class Form extends JFrame {
@@ -32,6 +37,14 @@ public class Form extends JFrame {
 
 	private void createUIComponents() {
 		// TODO: place custom component creation code here
+		DefaultMutableTreeNode node = null;
+		try {
+			Iterable<Path> paths = SearchFiles.traverseTree(Paths.get("/home/denis"), "*");
+			node = FilesToTree.getNode(paths);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		tree = new JTree(node);
 	}
 
 	/**
