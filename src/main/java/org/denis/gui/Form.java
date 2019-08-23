@@ -3,26 +3,23 @@ package org.denis.gui;
 import org.denis.files.SearchFiles;
 
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
-import javax.swing.plaf.FileChooserUI;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class Form extends JFrame {
 
 	private JPanel mPanel;
-	private JPanel menu;
 	private JButton directory;
+	private JTextArea textFile;
+	private JTextField pathText;
+	private JTextField textToSearch;
 	private JTree tree;
-	private JTextPane textPane1;
-	private JScrollPane treeScroll;
+	private JTextField extension;
 	private JFileChooser fileChooser = new JFileChooser();
 
 	public Form() {
@@ -35,14 +32,22 @@ public class Form extends JFrame {
 		this.setPreferredSize(new Dimension(800, 800));
 		this.pack();
 
+		textToSearch.setBorder(BorderFactory.createTitledBorder("Text to search"));
+		pathText.setBorder(BorderFactory.createTitledBorder("Path"));
+		extension.setBorder(BorderFactory.createTitledBorder("Extension"));
+		extension.setText(".log");
+		tree.setBorder(BorderFactory.createTitledBorder("Tree"));
+		textFile.setBorder(BorderFactory.createTitledBorder("Text"));
+		mPanel.setMinimumSize(new Dimension(1000, 1000));
+
 		directory.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				fileChooser.setDialogTitle("Choose directory");
+				fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 				int result = fileChooser.showOpenDialog(Form.this);
 				if (result == JFileChooser.APPROVE_OPTION)
-					JOptionPane.showMessageDialog(Form.this,
-							fileChooser.getSelectedFile());
+					pathText.setText(fileChooser.getSelectedFile().toString());
 			}
 		});
 	}
@@ -57,10 +62,9 @@ public class Form extends JFrame {
 		try {
 			Iterable<Path> paths = SearchFiles.traverseTree(Paths.get("/home/denis"), "*");
 			node = FilesToTree.getNode(paths);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		} catch (IOException exp) {
+			throw new RuntimeException(exp);
 		}
-		tree = new JTree(node);
 	}
 
 	/**
@@ -71,28 +75,57 @@ public class Form extends JFrame {
 	 * @noinspection ALL
 	 */
 	private void $$$setupUI$$$() {
-		createUIComponents();
 		mPanel = new JPanel();
-		mPanel.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(2, 3, new Insets(0, 0, 0, 0), -1, -1));
-		mPanel.setBackground(new Color(-12894656));
-		menu = new JPanel();
-		menu.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(1, 2, new Insets(0, 0, 0, 0), -1, -1));
-		menu.setBackground(new Color(-12894656));
-		mPanel.add(menu, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 3, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-		menu.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(-2302756)), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, new Color(-986896)));
+		mPanel.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(3, 4, new Insets(5, 5, 5, 5), -1, -1));
+		mPanel.setAutoscrolls(false);
+		mPanel.setBackground(new Color(-1));
+		mPanel.setDoubleBuffered(false);
+		mPanel.setEnabled(false);
+		mPanel.setForeground(new Color(-3552823));
+		mPanel.putClientProperty("html.disable", Boolean.TRUE);
+		final JScrollPane scrollPane1 = new JScrollPane();
+		mPanel.add(scrollPane1, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(200, 200), new Dimension(200, 600), null, 0, false));
+		tree = new JTree();
+		tree.setBackground(new Color(-1));
+		tree.setFocusable(false);
+		tree.setForeground(new Color(-1));
+		scrollPane1.setViewportView(tree);
+		final JScrollPane scrollPane2 = new JScrollPane();
+		scrollPane2.setHorizontalScrollBarPolicy(31);
+		mPanel.add(scrollPane2, new com.intellij.uiDesigner.core.GridConstraints(2, 2, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(200, 200), new Dimension(600, 600), null, 0, false));
+		textFile = new JTextArea();
+		textFile.setBackground(new Color(-1));
+		textFile.setEditable(true);
+		textFile.setLineWrap(true);
+		scrollPane2.setViewportView(textFile);
+		textToSearch = new JTextField();
+		textToSearch.setBackground(new Color(-1));
+		textToSearch.setCaretColor(new Color(-16777216));
+		textToSearch.setDisabledTextColor(new Color(-1));
+		textToSearch.setForeground(new Color(-16777216));
+		textToSearch.setInheritsPopupMenu(false);
+		textToSearch.setMargin(new Insets(2, 5, 2, 5));
+		mPanel.add(textToSearch, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 3, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTHWEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+		pathText = new JTextField();
+		pathText.setBackground(new Color(-1));
+		pathText.setCaretColor(new Color(-16777216));
+		pathText.setDisabledTextColor(new Color(-1));
+		pathText.setForeground(new Color(-16777216));
+		pathText.setInheritsPopupMenu(false);
+		pathText.setMargin(new Insets(2, 5, 2, 5));
+		mPanel.add(pathText, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 3, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTHWEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
 		directory = new JButton();
+		directory.setBackground(new Color(-1907998));
+		directory.setForeground(new Color(-16777216));
+		directory.setHideActionText(false);
 		directory.setHorizontalTextPosition(0);
-		directory.setText("directory");
-		menu.add(directory, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-		final com.intellij.uiDesigner.core.Spacer spacer1 = new com.intellij.uiDesigner.core.Spacer();
-		menu.add(spacer1, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
-		final com.intellij.uiDesigner.core.Spacer spacer2 = new com.intellij.uiDesigner.core.Spacer();
-		mPanel.add(spacer2, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_VERTICAL, 1, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
-		textPane1 = new JTextPane();
-		mPanel.add(textPane1, new com.intellij.uiDesigner.core.GridConstraints(1, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(150, 50), null, 0, false));
-		treeScroll = new JScrollPane();
-		mPanel.add(treeScroll, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
-		treeScroll.setViewportView(tree);
+		directory.setLabel("...");
+		directory.setOpaque(true);
+		directory.setText("...");
+		mPanel.add(directory, new com.intellij.uiDesigner.core.GridConstraints(1, 3, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_EAST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+		extension = new JTextField();
+		extension.setBackground(new Color(-1));
+		mPanel.add(extension, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTH, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
 	}
 
 	/**
