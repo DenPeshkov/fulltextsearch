@@ -23,9 +23,11 @@ public class SearchFiles {
 			return files;
 		}
 
-		private final TreeSet<Path> files = new TreeSet<>();
+		private final List<Path> files = new ArrayList<>();
 
 		private final PathMatcher matcher;
+
+		private Path dir;
 
 		Finder(String pattern) {
 			matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
@@ -33,7 +35,7 @@ public class SearchFiles {
 
 		// Compares the glob pattern against
 		// the file or directory name.
-		void find(Path file) {
+		void find(Path file, Path dir) {
 			Path name = file.getFileName();
 			if (name != null && matcher.matches(name)) {
 				files.add(file);
@@ -44,13 +46,14 @@ public class SearchFiles {
 		// method on each file.
 		@Override
 		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-			find(file);
+			find(file, dir);
 			return CONTINUE;
 		}
 
 		@Override
 		public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
 			//System.out.println(dir);
+			this.dir = dir;
 			return CONTINUE;
 		}
 
@@ -65,12 +68,5 @@ public class SearchFiles {
 		Finder finder = new Finder(extension);
 		Files.walkFileTree(dir, finder);
 		return finder.getFiles();
-	}
-
-	public static void main(String[] args) throws IOException {
-		Iterable<Path> paths = traverseTree(Paths.get("/home/denis/Desktop"), "*.txt");
-		for (Path i : paths) {
-			System.out.println(i);
-		}
 	}
 }
