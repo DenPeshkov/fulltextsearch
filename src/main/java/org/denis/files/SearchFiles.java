@@ -36,6 +36,7 @@ public class SearchFiles implements TreeObservable {
 
 		Finder(String extension, String pattern) {
 			matcher = FileSystems.getDefault().getPathMatcher("glob:" + extension);
+			this.pattern = pattern;
 		}
 
 		// Compares the glob pattern against
@@ -45,7 +46,7 @@ public class SearchFiles implements TreeObservable {
 			if (name != null && matcher.matches(name)) {
 				//files.add(file);
 				try {
-					String string = new String(Files.readAllBytes(name));
+					String string = new String(Files.readAllBytes(file));
 					if (string.contains(pattern))
 						notifyObservers(file);
 				} catch (IOException e) {

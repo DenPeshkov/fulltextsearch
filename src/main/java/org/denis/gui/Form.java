@@ -9,7 +9,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class Form extends JFrame {
@@ -24,15 +23,22 @@ public class Form extends JFrame {
 	private JButton search;
 	private JFileChooser fileChooser = new JFileChooser();
 
-	public Form() {
+	public Form() throws ClassNotFoundException, UnsupportedLookAndFeelException, InstantiationException, IllegalAccessException {
 		$$$setupUI$$$();
 		setContentPane(mPanel);
 		setVisible(true);
 
+		//UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		this.setPreferredSize(new Dimension(800, 800));
 		this.pack();
+		//this.setLocationByPlatform(true);
+		this.setMinimumSize(this.getSize());
+		this.setVisible(true);
+		this.pack();
+
+		mPanel.setMinimumSize(this.getSize());
 
 		textToSearch.setBorder(BorderFactory.createTitledBorder("Text to search"));
 		pathText.setBorder(BorderFactory.createTitledBorder("Path"));
@@ -44,9 +50,6 @@ public class Form extends JFrame {
 
 		((DefaultTreeModel) tree.getModel()).setRoot(null);
 		tree.setRootVisible(false);
-
-		SearchFiles searchFiles = new SearchFiles();
-		FilesToTree filesToTree = new FilesToTree(tree);
 
 		directory.addActionListener(new ActionListener() {
 			@Override
@@ -62,22 +65,41 @@ public class Form extends JFrame {
 		search.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				DefaultMutableTreeNode node = null;
-				if (!pathText.getText().isEmpty()) {
-					searchFiles.registerObserver(filesToTree);
-					try {
-						searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText());
-					} catch (IOException e1) {
-						e1.printStackTrace();
-					}
-				}
-				//tree.updateUI();
+				drawTree();
 			}
 		});
 	}
 
-	public static void main(String[] args) throws ClassNotFoundException, UnsupportedLookAndFeelException, InstantiationException, IllegalAccessException {
-		Form form = new Form();
+	private void drawTree() {
+		SearchFiles searchFiles = new SearchFiles();
+		FilesToTree filesToTree = new FilesToTree(tree);
+		searchFiles.registerObserver(filesToTree);
+		if (!pathText.getText().isEmpty()) {
+			new SwingWorker<Void, Void>() {
+
+				@Override
+				protected Void doInBackground() throws Exception {
+					searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText());
+					return null;
+				}
+
+				@Override
+				protected void done() {
+					super.done();
+				}
+			}.execute();
+		}
+	}
+
+	public static void main(String[] args) {
+		//edt
+		SwingUtilities.invokeLater(() -> {
+			try {
+				Form form = new Form();
+			} catch (ClassNotFoundException | UnsupportedLookAndFeelException | InstantiationException | IllegalAccessException e) {
+				e.printStackTrace();
+			}
+		});
 	}
 
 	private void createUIComponents() {
