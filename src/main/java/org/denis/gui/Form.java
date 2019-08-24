@@ -72,7 +72,6 @@ public class Form extends JFrame {
 					}
 				}
 				//tree.updateUI();
-
 			}
 		});
 	}

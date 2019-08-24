@@ -21,6 +21,14 @@ public class FilesToTree implements TreeObserver {
 		((DefaultTreeModel) tree.getModel()).setRoot(treeRootNode);
 	}
 
+	/*
+	Используется оптимизация. Для создания дерева мы дожны добавлять к родительским узлам узлы потомки.
+	В данном случае путь проверятеся с конца позволяя уменьшить обращения к хеш таблице.
+	То есть путь:
+	/home/denis/file/1.txt полностью заполнит хеш таблицу за исключением имени файла, которое не хранится.
+	А путь /home/denis/file/2.txt добавит к уже существующему узлу /home/denis/file/ узел 2.txt и завершится, не просматривая дальше узлы.
+	Также в хеш таблице не хранятся полные пути к файлам,сокращяя место.
+	 */
 	@Override
 	public void updateTree(Path path) {
 		DefaultMutableTreeNode node = null;
@@ -51,7 +59,6 @@ public class FilesToTree implements TreeObserver {
 				break;
 			}
 		}
-		//tree.updateUI();
 		((DefaultTreeModel) tree.getModel()).reload();
 	}
 }

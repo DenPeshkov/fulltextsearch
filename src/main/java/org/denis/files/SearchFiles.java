@@ -32,9 +32,10 @@ public class SearchFiles implements TreeObservable {
 	private class Finder extends SimpleFileVisitor<Path> {
 
 		private final PathMatcher matcher;
+		String pattern;
 
-		Finder(String pattern) {
-			matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+		Finder(String extension, String pattern) {
+			matcher = FileSystems.getDefault().getPathMatcher("glob:" + extension);
 		}
 
 		// Compares the glob pattern against
@@ -43,7 +44,13 @@ public class SearchFiles implements TreeObservable {
 			Path name = file.getFileName();
 			if (name != null && matcher.matches(name)) {
 				//files.add(file);
-				notifyObservers(file);
+				try {
+					String string = new String(Files.readAllBytes(name));
+					if (string.contains(pattern))
+						notifyObservers(file);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
 			}
 		}
 
@@ -72,8 +79,8 @@ public class SearchFiles implements TreeObservable {
 		}
 	}
 
-	public void traverseTree(Path dir, String extension) throws IOException {
-		Finder finder = new Finder(extension);
+	public void traverseTree(Path dir, String extension, String pattern) throws IOException {
+		Finder finder = new Finder(extension, pattern);
 		Files.walkFileTree(dir, finder);
 	}
 }
