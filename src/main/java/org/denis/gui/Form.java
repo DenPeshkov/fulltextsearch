@@ -45,6 +45,9 @@ public class Form extends JFrame {
 		((DefaultTreeModel) tree.getModel()).setRoot(null);
 		tree.setRootVisible(false);
 
+		SearchFiles searchFiles = new SearchFiles();
+		FilesToTree filesToTree = new FilesToTree(tree);
+
 		directory.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -60,16 +63,16 @@ public class Form extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				DefaultMutableTreeNode node = null;
-				try {
-					if (!pathText.getText().isEmpty()) {
-						Iterable<Path> paths = SearchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText());
-						System.out.println(paths);
-						node = FilesToTree.getNode(paths);
+				if (!pathText.getText().isEmpty()) {
+					searchFiles.registerObserver(filesToTree);
+					try {
+						searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText());
+					} catch (IOException e1) {
+						e1.printStackTrace();
 					}
-				} catch (IOException exp) {
-					throw new RuntimeException(exp);
 				}
-				((DefaultTreeModel) tree.getModel()).setRoot(node);
+				//tree.updateUI();
+
 			}
 		});
 	}
@@ -80,13 +83,6 @@ public class Form extends JFrame {
 
 	private void createUIComponents() {
 		// TODO: place custom component creation code here
-		DefaultMutableTreeNode node = null;
-		try {
-			Iterable<Path> paths = SearchFiles.traverseTree(Paths.get("/home/denis"), "*");
-			node = FilesToTree.getNode(paths);
-		} catch (IOException exp) {
-			throw new RuntimeException(exp);
-		}
 	}
 
 	/**

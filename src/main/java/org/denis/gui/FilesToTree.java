@@ -1,47 +1,57 @@
 package org.denis.gui;
 
+import org.denis.files.TreeObserver;
+
+import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public class FilesToTree {
-	private FilesToTree() {
+public class FilesToTree implements TreeObserver {
+	private JTree tree;
+	private DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode(null);
+	private Map<Path, DefaultMutableTreeNode> map = new HashMap<>();
+
+
+	FilesToTree(JTree tree) {
+		this.tree = tree;
+		map.put(null, treeRootNode);
+		((DefaultTreeModel) tree.getModel()).setRoot(treeRootNode);
 	}
 
-	static public DefaultMutableTreeNode getNode(Iterable<Path> paths) {
-		DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode(null);
-		Map<Path, DefaultMutableTreeNode> map = new HashMap<>();
-		map.put(null, treeRootNode);
-		for (Path path : paths) {
+	@Override
+	public void updateTree(Path path) {
+		DefaultMutableTreeNode node = null;
 
-			int index = 1;
+		Path root = path.getRoot();
 
-			Path root = path.getRoot();  //TODO учитывать общие пути
+		if (!map.containsKey(root)) {
+			DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(root);
+			treeRootNode.add(rootNode);
+			map.put(root, rootNode);
+		}
 
-			if (!map.containsKey(root)) {
-				DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(root);
-				treeRootNode.add(rootNode);
-				map.put(root, rootNode);
-			}
+		DefaultMutableTreeNode prevNode = new DefaultMutableTreeNode(path); //filename unique
 
-			for (int i = path.getNameCount()-1; i >= 1; i--) {
-				Path parent = path.subpath(0, i);
-				if (map.containsKey(parent)) {
-					index = i;
-				}
-			}
+		for (int i = path.getNameCount(); i >= 1; i--) {
+			Path child = root.resolve(path.subpath(0, i));
+			Path parent = child.getParent();
 
-			for (int i = index; i <= path.getNameCount(); i++) {
-				Path subpath = root.resolve(path.subpath(0, i));
-				DefaultMutableTreeNode node = new DefaultMutableTreeNode(subpath.getFileName());
-				DefaultMutableTreeNode nodePrev = map.putIfAbsent(subpath, node);
+			DefaultMutableTreeNode parentNode = map.get(parent);
 
-				if (nodePrev == null) {
-					map.getOrDefault(subpath.getParent(), treeRootNode).add(node);
-				}
+			if (parentNode == null) {
+				parentNode = new DefaultMutableTreeNode(parent);
+				parentNode.add(prevNode);
+				map.put(parent, parentNode);
+				prevNode = parentNode;
+			} else {
+				parentNode.add(prevNode);
+				break;
 			}
 		}
-		return treeRootNode;
+		//tree.updateUI();
+		((DefaultTreeModel) tree.getModel()).reload();
 	}
 }
