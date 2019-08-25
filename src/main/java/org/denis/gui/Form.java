@@ -16,8 +16,11 @@ import javax.swing.tree.DefaultTreeModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 public class Form extends JFrame {
 
@@ -75,14 +78,24 @@ public class Form extends JFrame {
 	private void drawTree() {
 		SearchFiles searchFiles = new SearchFiles();
 		FilesToTree filesToTree = new FilesToTree(tree, mPanel);
-		searchFiles.registerObserver(filesToTree);
 		if (!pathText.getText().isEmpty()) {
-			new SwingWorker<Void, Void>() {
+			//background task
+			new SwingWorker<Void, Path>() {
 
 				@Override
 				protected Void doInBackground() throws Exception {
-					searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText());
+					searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), this::publish);
 					return null;
+				}
+
+				//edt
+				@Override
+				protected void process(List<Path> files) {
+					System.out.println(files);
+					for (Path file : files) {
+						filesToTree.updateTree(file);
+					}
+					((DefaultTreeModel) tree.getModel()).reload();
 				}
 
 				@Override
@@ -97,9 +110,9 @@ public class Form extends JFrame {
 		//edt
 		SwingUtilities.invokeLater(() -> {
 			try {
-				//WebLookAndFeel.install();
-				UIManager.getFont("Label.font");
-				UIManager.setLookAndFeel("com.bulenkov.darcula.DarculaLaf");
+				WebLookAndFeel.install();
+				//UIManager.getFont("Label.font");
+				//UIManager.setLookAndFeel("com.bulenkov.darcula.DarculaLaf");
 
 				Form form = new Form();
 			} catch (ClassNotFoundException | UnsupportedLookAndFeelException | InstantiationException | IllegalAccessException e) {

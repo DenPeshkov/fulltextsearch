@@ -1,7 +1,5 @@
 package org.denis.gui;
 
-import org.denis.files.TreeObserver;
-
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -9,7 +7,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public class FilesToTree implements TreeObserver {
+public class FilesToTree {
 	private JTree tree;
 	private JPanel gui;
 	private DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode(null);
@@ -18,7 +16,7 @@ public class FilesToTree implements TreeObserver {
 
 	FilesToTree(JTree tree, JPanel gui) {
 		this.tree = tree;
-		this.gui=gui;
+		this.gui = gui;
 		map.put(null, treeRootNode);
 		((DefaultTreeModel) tree.getModel()).setRoot(treeRootNode);
 	}
@@ -31,20 +29,7 @@ public class FilesToTree implements TreeObserver {
 	А путь /home/denis/file/2.txt добавит к уже существующему узлу /home/denis/file/ узел 2.txt и завершится, не просматривая дальше узлы.
 	Также в хеш таблице не хранятся полные пути к файлам,сокращяя место.
 	 */
-	@Override
 	public void updateTree(Path path) {
-
-		SwingUtilities.invokeLater(new Runnable() {
-			@Override
-			public void run() {
-
-			}
-		});
-
-		tree.setEnabled(false);
-
-		DefaultMutableTreeNode node = null;
-
 		Path root = path.getRoot();
 
 		if (!map.containsKey(root)) {
@@ -70,15 +55,6 @@ public class FilesToTree implements TreeObserver {
 				parentNode.add(prevNode);
 				break;
 			}
-		}
-
-		tree.setEnabled(true);
-
-		((DefaultTreeModel) tree.getModel()).reload();
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
 		}
 	}
 }
