@@ -26,5 +26,6 @@
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.25" level="project" />
     <orderEntry type="library" name="Maven: com.kitfox.svg:svg-salamander:1.0" level="project" />
     <orderEntry type="library" name="Maven: com.fifesoft:rsyntaxtextarea:2.6.0" level="project" />
+    <orderEntry type="library" name="Maven: com.eaio.stringsearch:stringsearch:2.2" level="project" />
   </component>
 </module>

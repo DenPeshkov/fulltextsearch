@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import com.eaio.stringsearch.BoyerMooreHorspool;
+
 import static java.nio.file.FileVisitResult.CONTINUE;
 
 public class SearchFiles {
@@ -16,6 +18,7 @@ public class SearchFiles {
 		private final PathMatcher matcher;
 		private String pattern;
 		private Consumer<Path> action;
+		BoyerMooreHorspool boyerMooreHorspool = new BoyerMooreHorspool();
 
 		Finder(String extension, String pattern, Consumer<Path> action) {
 			matcher = FileSystems.getDefault().getPathMatcher("glob:" + extension);
@@ -30,14 +33,12 @@ public class SearchFiles {
 			if (name != null && matcher.matches(name)) {
 				//files.add(file);
 				try {
-					String string = new String(Files.readAllBytes(file));
-					if (string.contains(pattern))
+					//поиск подстроки
+					if (boyerMooreHorspool.searchBytes(Files.readAllBytes(file), pattern.getBytes()) != -1)
 						action.accept(file);
-					//notifyObservers(file);
-
 				} catch (IOException e) {
 					//throw new RuntimeException(e);
-					System.err.println(e);
+					//System.err.println(e);
 				}
 			}
 		}
