@@ -11,12 +11,14 @@ import java.util.Map;
 
 public class FilesToTree implements TreeObserver {
 	private JTree tree;
+	private JPanel gui;
 	private DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode(null);
 	private Map<Path, DefaultMutableTreeNode> map = new HashMap<>();
 
 
-	FilesToTree(JTree tree) {
+	FilesToTree(JTree tree, JPanel gui) {
 		this.tree = tree;
+		this.gui=gui;
 		map.put(null, treeRootNode);
 		((DefaultTreeModel) tree.getModel()).setRoot(treeRootNode);
 	}
@@ -31,6 +33,16 @@ public class FilesToTree implements TreeObserver {
 	 */
 	@Override
 	public void updateTree(Path path) {
+
+		SwingUtilities.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+
+			}
+		});
+
+		tree.setEnabled(false);
+
 		DefaultMutableTreeNode node = null;
 
 		Path root = path.getRoot();
@@ -59,6 +71,9 @@ public class FilesToTree implements TreeObserver {
 				break;
 			}
 		}
+
+		tree.setEnabled(true);
+
 		((DefaultTreeModel) tree.getModel()).reload();
 		try {
 			Thread.sleep(2000);
