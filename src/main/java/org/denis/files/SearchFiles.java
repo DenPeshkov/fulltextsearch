@@ -5,52 +5,39 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 
-public class SearchFiles implements TreeObservable {
-
-	List<TreeObserver> list = new ArrayList<>();
-
-	@Override
-	public void registerObserver(TreeObserver o) {
-		list.add(o);
-	}
-
-	@Override
-	public void removeObserver(TreeObserver o) {
-		list.remove(o);
-	}
-
-	@Override
-	public void notifyObservers(Path path) {
-		for (TreeObserver treeObserver : list) {
-			treeObserver.updateTree(path);
-		}
-	}
+public class SearchFiles {
 
 	private class Finder extends SimpleFileVisitor<Path> {
 
 		private final PathMatcher matcher;
-		String pattern;
+		private String pattern;
+		private Consumer<Path> action;
 
-		Finder(String extension, String pattern) {
+		Finder(String extension, String pattern, Consumer<Path> action) {
 			matcher = FileSystems.getDefault().getPathMatcher("glob:" + extension);
 			this.pattern = pattern;
+			this.action = action;
 		}
 
 		// Compares the glob pattern against
 		// the file or directory name.
-		void find(Path file) {
+		private void find(Path file) {
 			Path name = file.getFileName();
 			if (name != null && matcher.matches(name)) {
 				//files.add(file);
 				try {
 					String string = new String(Files.readAllBytes(file));
 					if (string.contains(pattern))
-						notifyObservers(file);
+						action.accept(file);
+					//notifyObservers(file);
+
 				} catch (IOException e) {
-					throw new RuntimeException(e);
+					//throw new RuntimeException(e);
+					System.err.println(e);
 				}
 			}
 		}
@@ -80,8 +67,8 @@ public class SearchFiles implements TreeObservable {
 		}
 	}
 
-	public void traverseTree(Path dir, String extension, String pattern) throws IOException {
-		Finder finder = new Finder(extension, pattern);
+	public void traverseTree(Path dir, String extension, String pattern, Consumer<Path> action) throws IOException {
+		Finder finder = new Finder(extension, pattern, action);
 		Files.walkFileTree(dir, finder);
 	}
 }
