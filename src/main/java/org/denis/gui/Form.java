@@ -5,6 +5,7 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
 import org.denis.files.SearchFiles;
+import sun.reflect.generics.tree.Tree;
 
 import javax.swing.*;
 import javax.swing.event.TreeExpansionEvent;
@@ -15,10 +16,9 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class Form extends JFrame {
@@ -35,6 +35,7 @@ public class Form extends JFrame {
 	private JScrollPane treeScrollPane;
 	private JFileChooser fileChooser = new JFileChooser();
 
+	private final Set<TreePath> fileTreeExpandedPaths = new HashSet<>();
 	private DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode(null);
 
 	public Form() {
@@ -59,7 +60,6 @@ public class Form extends JFrame {
 
 		((DefaultTreeModel) tree.getModel()).setRoot(treeRootNode);
 		tree.setRootVisible(false);
-		//tree.expandRow(0);
 
 		directory.addActionListener(e -> {
 			fileChooser.setDialogTitle("Choose directory");
@@ -74,12 +74,27 @@ public class Form extends JFrame {
 				treeRootNode.removeAllChildren();
 				drawTree();
 			}
+
+			fileTreeExpandedPaths.clear();
+		});
+
+		tree.addTreeExpansionListener(new TreeExpansionListener() {
+			@Override
+			public void treeExpanded(TreeExpansionEvent event) {
+				fileTreeExpandedPaths.add(event.getPath());
+			}
+
+			@Override
+			public void treeCollapsed(TreeExpansionEvent event) {
+				fileTreeExpandedPaths.remove(event.getPath());
+			}
 		});
 	}
 
 	private void drawTree() {
 		Map<Path, DefaultMutableTreeNode> map = new HashMap<>();
 		SearchFiles searchFiles = new SearchFiles();
+		HashSet<DefaultMutableTreeNode> nodeSet = new HashSet<>();
 
 		Path root = Paths.get(pathText.getText()).getRoot();
 
@@ -96,7 +111,6 @@ public class Form extends JFrame {
 			@Override
 			protected Void doInBackground() throws Exception {
 				searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), path -> publish(updateTree(path, map)));
-
 				return null;
 			}
 
@@ -106,13 +120,13 @@ public class Form extends JFrame {
 				//System.out.println(files);
 				for (DefaultMutableTreeNode file : nodes) {
 					((DefaultTreeModel) tree.getModel()).reload(file);
-					tree.expandPath(tree.getSelectionPath());
 				}
+				//System.out.println(Thread.currentThread());
+				fileTreeExpandedPaths.forEach(tree::expandPath);
 			}
 
 			@Override
 			protected void done() {
-				System.out.println("done");
 				super.done();
 			}
 		}.execute();
