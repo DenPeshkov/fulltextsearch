@@ -35,7 +35,7 @@ public class Form extends JFrame {
 	private JScrollPane treeScrollPane;
 	private JFileChooser fileChooser = new JFileChooser();
 
-	private final Set<TreePath> fileTreeExpandedPaths = new HashSet<>();
+	private final Set<TreePath> fileTreeExpandedPaths = Collections.newSetFromMap(new ConcurrentHashMap<>());
 	private DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode(null);
 
 	public Form() {
@@ -117,11 +117,9 @@ public class Form extends JFrame {
 			//edt
 			@Override
 			protected void process(List<DefaultMutableTreeNode> nodes) {
-				//System.out.println(files);
 				for (DefaultMutableTreeNode file : nodes) {
 					((DefaultTreeModel) tree.getModel()).reload(file);
 				}
-				//System.out.println(Thread.currentThread());
 				fileTreeExpandedPaths.forEach(tree::expandPath);
 			}
 
