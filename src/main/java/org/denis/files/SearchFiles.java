@@ -31,9 +31,9 @@ public class SearchFiles {
 		private void find(Path file) {
 			Path name = file.getFileName();
 			if (name != null && matcher.matches(name)) {
-				//files.add(file);
 				try {
 					//поиск подстроки
+					//использууем один поток, т.к. поиск очень быстрый и тем самым избавляемся от оверхеда управления потоков
 					if (boyerMooreHorspool.searchBytes(Files.readAllBytes(file), pattern.getBytes()) != -1)
 						action.accept(file);
 				} catch (IOException e) {

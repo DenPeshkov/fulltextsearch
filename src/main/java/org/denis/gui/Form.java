@@ -29,6 +29,8 @@ public class Form extends JFrame {
 	private JTextField extension;
 	private JButton search;
 	private JTable textEditor;
+	private JScrollPane textEditorScrollPane;
+	private JScrollPane treeScrollPane;
 	private JFileChooser fileChooser = new JFileChooser();
 
 	private final HashMap<TreePath, TreePath> fileTreeExpandedPaths = new HashMap<>();
@@ -96,13 +98,7 @@ public class Form extends JFrame {
 
 				@Override
 				protected Void doInBackground() throws Exception {
-					//searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), this::publish);
-					int i = 0;
-					while (i < 100000) {
-						publish(Paths.get("/" + i + ".txt"));
-						i++;
-						//Thread.sleep(100);
-					}
+					searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), this::publish);
 					return null;
 				}
 
@@ -127,7 +123,7 @@ public class Form extends JFrame {
 
 	/*
 	Используется оптимизация. Для создания дерева мы дожны добавлять к родительским узлам узлы потомки.
-	В данном случае путь проверятеся с конца позволяя уменьшить обращения к хеш таблице.
+	В данном случае путь проверятеся с конца, позволяя уменьшить обращения к хеш таблице.
 	То есть путь:
 	/home/denis/file/1.txt полностью заполнит хеш таблицу за исключением имени файла, которое не хранится.
 	А путь /home/denis/file/2.txt добавит к уже существующему узлу /home/denis/file/ узел 2.txt и завершится, не просматривая дальше узлы.
@@ -170,8 +166,6 @@ public class Form extends JFrame {
 		//edt
 		SwingUtilities.invokeLater(() -> {
 			WebLookAndFeel.install();
-			//UIManager.getFont("Label.font");
-			//UIManager.setLookAndFeel("com.bulenkov.darcula.DarculaLaf");
 
 			Form form = new Form();
 		});
@@ -192,10 +186,10 @@ public class Form extends JFrame {
 		mPanel = new JPanel();
 		mPanel.setLayout(new GridLayoutManager(4, 4, new Insets(5, 5, 5, 5), -1, -1));
 		mPanel.putClientProperty("html.disable", Boolean.TRUE);
-		final JScrollPane scrollPane1 = new JScrollPane();
-		mPanel.add(scrollPane1, new GridConstraints(3, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(200, 200), new Dimension(200, 600), null, 0, false));
+		treeScrollPane = new JScrollPane();
+		mPanel.add(treeScrollPane, new GridConstraints(3, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(200, 200), new Dimension(200, 600), null, 0, false));
 		tree = new JTree();
-		scrollPane1.setViewportView(tree);
+		treeScrollPane.setViewportView(tree);
 		pathText = new JTextField();
 		mPanel.add(pathText, new GridConstraints(0, 0, 1, 3, GridConstraints.ANCHOR_NORTHWEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
 		extension = new JTextField();
@@ -217,10 +211,11 @@ public class Form extends JFrame {
 		search = new JButton();
 		search.setText("Search");
 		mPanel.add(search, new GridConstraints(2, 3, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-		final JScrollPane scrollPane2 = new JScrollPane();
-		mPanel.add(scrollPane2, new GridConstraints(3, 2, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+		textEditorScrollPane = new JScrollPane();
+		textEditorScrollPane.setEnabled(true);
+		mPanel.add(textEditorScrollPane, new GridConstraints(3, 2, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
 		textEditor = new JTable();
-		scrollPane2.setViewportView(textEditor);
+		textEditorScrollPane.setViewportView(textEditor);
 	}
 
 	/**
