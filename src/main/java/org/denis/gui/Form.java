@@ -16,8 +16,10 @@ import java.awt.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class Form extends JFrame {
 
@@ -34,7 +36,7 @@ public class Form extends JFrame {
 	private JFileChooser fileChooser = new JFileChooser();
 
 	private final HashMap<TreePath, TreePath> fileTreeExpandedPaths = new HashMap<>();
-	DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode(null);
+	private DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode(null);
 
 	public Form() {
 		$$$setupUI$$$();
@@ -56,7 +58,7 @@ public class Form extends JFrame {
 
 		pathText.setText("Search ...");
 
-		((DefaultTreeModel) tree.getModel()).setRoot(null);
+		((DefaultTreeModel) tree.getModel()).setRoot(treeRootNode);
 		tree.setRootVisible(false);
 
 		directory.addActionListener(e -> {
@@ -68,12 +70,13 @@ public class Form extends JFrame {
 		});
 
 		search.addActionListener(e -> {
-			drawTree();
+			if (!pathText.getText().equals("Search ...")) {
+				treeRootNode.removeAllChildren();
+				drawTree();
+			}
 
 			fileTreeExpandedPaths.clear();
 		});
-
-		((DefaultTreeModel) tree.getModel()).setRoot(treeRootNode);
 
 		tree.addTreeExpansionListener(new TreeExpansionListener() {
 			@Override
@@ -91,34 +94,55 @@ public class Form extends JFrame {
 	private void drawTree() {
 		Map<Path, DefaultMutableTreeNode> map = new HashMap<>();
 		SearchFiles searchFiles = new SearchFiles();
+		HashSet<DefaultMutableTreeNode> nodeSet = new HashSet<>();
 
-		if (!pathText.getText().isEmpty()) {
-			//background task
-			new SwingWorker<Void, Path>() {
+		Path root = Paths.get(pathText.getText()).getRoot();
 
-				@Override
-				protected Void doInBackground() throws Exception {
-					searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), this::publish);
-					return null;
-				}
+		//add root
+		DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(root);
+		map.put(root, rootNode);
+		treeRootNode.add(rootNode);
 
-				//edt
-				@Override
-				protected void process(List<Path> files) {
-					System.out.println(files);
-					for (Path file : files) {
-						DefaultMutableTreeNode parentNode = updateTree(file, map);
-						((DefaultTreeModel) tree.getModel()).reload(parentNode);
+		((DefaultTreeModel) tree.getModel()).reload(treeRootNode);
+
+		//background task
+		new SwingWorker<Void, DefaultMutableTreeNode>() {
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				/*searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), path -> {
+					DefaultMutableTreeNode node = updateTree(path, map);
+					if (!nodeSet.contains(node)) {
+						publish(node);
+						nodeSet.add(node);
 					}
-					fileTreeExpandedPaths.keySet().forEach(tree::expandPath);
+				});*/
+				int i = 0;
+				while (i < 100000) {
+					DefaultMutableTreeNode defaultMutableTreeNode = updateTree(Paths.get("/a/" + i), map);
+					publish(defaultMutableTreeNode);
+					Thread.sleep(10);
+					i++;
 				}
+				return null;
+			}
 
-				@Override
-				protected void done() {
-					super.done();
+			//edt
+			@Override
+			protected void process(List<DefaultMutableTreeNode> nodes) {
+				//System.out.println(files);
+				for (DefaultMutableTreeNode file : nodes) {
+					((DefaultTreeModel) tree.getModel()).reload(file);
 				}
-			}.execute();
-		}
+				//System.out.println(Thread.currentThread());
+				fileTreeExpandedPaths.keySet().forEach(tree::expandPath);
+			}
+
+			@Override
+			protected void done() {
+				super.done();
+			}
+		}.execute();
 	}
 
 	/*
@@ -131,13 +155,6 @@ public class Form extends JFrame {
 	 */
 	private DefaultMutableTreeNode updateTree(Path path, Map<Path, DefaultMutableTreeNode> map) {
 		Path root = path.getRoot();
-
-		if (!map.containsKey(root)) {
-			DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(root);
-			treeRootNode.add(rootNode);
-			((DefaultTreeModel) tree.getModel()).reload(treeRootNode);
-			map.put(root, rootNode);
-		}
 
 		DefaultMutableTreeNode prevNode = new DefaultMutableTreeNode(path); //filename unique
 		DefaultMutableTreeNode parentNode = treeRootNode;
@@ -165,7 +182,7 @@ public class Form extends JFrame {
 	public static void main(String[] args) {
 		//edt
 		SwingUtilities.invokeLater(() -> {
-			WebLookAndFeel.install();
+			//WebLookAndFeel.install();
 
 			Form form = new Form();
 		});
@@ -191,6 +208,8 @@ public class Form extends JFrame {
 		tree = new JTree();
 		treeScrollPane.setViewportView(tree);
 		pathText = new JTextField();
+		pathText.setEditable(false);
+		pathText.setEnabled(true);
 		mPanel.add(pathText, new GridConstraints(0, 0, 1, 3, GridConstraints.ANCHOR_NORTHWEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
 		extension = new JTextField();
 		mPanel.add(extension, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_NORTH, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
