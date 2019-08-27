@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class Form extends JFrame {
@@ -93,7 +94,6 @@ public class Form extends JFrame {
 
 	private void drawTree() {
 		Map<Path, DefaultMutableTreeNode> map = new HashMap<>();
-		SearchFiles searchFiles = new SearchFiles();
 		HashSet<DefaultMutableTreeNode> nodeSet = new HashSet<>();
 
 		Path root = Paths.get(pathText.getText()).getRoot();
@@ -106,11 +106,16 @@ public class Form extends JFrame {
 		((DefaultTreeModel) tree.getModel()).reload(treeRootNode);
 
 		//background task
-		new SwingWorker<Void, DefaultMutableTreeNode>() {
+		SwingWorker<Void, DefaultMutableTreeNode> worker = new SwingWorker<Void, DefaultMutableTreeNode>() {
 
 			@Override
 			protected Void doInBackground() throws Exception {
-				searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), path -> publish(updateTree(path, map)));
+				SearchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), new Consumer<SearchFiles.SearchFileResult>() {
+					@Override
+					public void accept(SearchFiles.SearchFileResult searchFileResult) {
+						publish(updateTree(searchFileResult.getFile(), map));
+					}
+				});
 				return null;
 			}
 
@@ -125,9 +130,17 @@ public class Form extends JFrame {
 
 			@Override
 			protected void done() {
-				super.done();
+				System.out.println("done");
 			}
-		}.execute();
+		};
+		worker.execute();
+
+		//чтобы выводить исключения
+		try {
+			Void aVoid = worker.get();
+		} catch (InterruptedException | ExecutionException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/*
