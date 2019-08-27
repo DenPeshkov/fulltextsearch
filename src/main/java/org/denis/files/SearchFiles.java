@@ -50,19 +50,20 @@ public class SearchFiles {
 		void find(Path file) {
 			Path name = file.getFileName();
 			if (name != null && matcher.matches(name)) {
-				System.out.println(file);
 				//поиск подстроки
 				//использууем один поток, т.к. поиск очень быстрый и тем самым избавляемся от оверхеда управления потоков
 				try (FileChannel filechanel = FileChannel.open(file)) {
 					if (filechanel.size() > Integer.MAX_VALUE) {
 						action.accept(new SearchFileResult(file, true));
+						return;
 					}
 					MappedByteBuffer mb = filechanel.map(FileChannel.MapMode.READ_ONLY, 0L, filechanel.size());
 					byte[] barray = new byte[(int) filechanel.size()];
 					mb.get(barray);
 					//byte[] barray = new byte[] {1,2,32,42,4,};
-					if (boyerMooreHorspool.searchBytes(barray, pattern.getBytes()) != -1)
+					if (boyerMooreHorspool.searchBytes(barray, pattern.getBytes()) != -1) {
 						action.accept(new SearchFileResult(file, false));
+					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
