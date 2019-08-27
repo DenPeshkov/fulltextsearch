@@ -5,6 +5,7 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
 import org.denis.files.SearchFiles;
+import sun.reflect.generics.tree.Tree;
 
 import javax.swing.*;
 import javax.swing.event.TreeExpansionEvent;
@@ -15,9 +16,10 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class Form extends JFrame {
 
@@ -33,8 +35,8 @@ public class Form extends JFrame {
 	private JScrollPane treeScrollPane;
 	private JFileChooser fileChooser = new JFileChooser();
 
-	private final HashMap<TreePath, TreePath> fileTreeExpandedPaths = new HashMap<>();
-	DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode(null);
+	private final Set<TreePath> fileTreeExpandedPaths = Collections.newSetFromMap(new ConcurrentHashMap<>());
+	private DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode(null);
 
 	public Form() {
 		$$$setupUI$$$();
@@ -56,7 +58,7 @@ public class Form extends JFrame {
 
 		pathText.setText("Search ...");
 
-		((DefaultTreeModel) tree.getModel()).setRoot(null);
+		((DefaultTreeModel) tree.getModel()).setRoot(treeRootNode);
 		tree.setRootVisible(false);
 
 		directory.addActionListener(e -> {
@@ -68,17 +70,18 @@ public class Form extends JFrame {
 		});
 
 		search.addActionListener(e -> {
-			drawTree();
+			if (!pathText.getText().equals("Search ...")) {
+				treeRootNode.removeAllChildren();
+				drawTree();
+			}
 
 			fileTreeExpandedPaths.clear();
 		});
 
-		((DefaultTreeModel) tree.getModel()).setRoot(treeRootNode);
-
 		tree.addTreeExpansionListener(new TreeExpansionListener() {
 			@Override
 			public void treeExpanded(TreeExpansionEvent event) {
-				fileTreeExpandedPaths.putIfAbsent(event.getPath(), event.getPath());
+				fileTreeExpandedPaths.add(event.getPath());
 			}
 
 			@Override
@@ -91,34 +94,40 @@ public class Form extends JFrame {
 	private void drawTree() {
 		Map<Path, DefaultMutableTreeNode> map = new HashMap<>();
 		SearchFiles searchFiles = new SearchFiles();
+		HashSet<DefaultMutableTreeNode> nodeSet = new HashSet<>();
 
-		if (!pathText.getText().isEmpty()) {
-			//background task
-			new SwingWorker<Void, Path>() {
+		Path root = Paths.get(pathText.getText()).getRoot();
 
-				@Override
-				protected Void doInBackground() throws Exception {
-					searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), this::publish);
-					return null;
+		//add root
+		DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(root);
+		map.put(root, rootNode);
+		treeRootNode.add(rootNode);
+
+		((DefaultTreeModel) tree.getModel()).reload(treeRootNode);
+
+		//background task
+		new SwingWorker<Void, DefaultMutableTreeNode>() {
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				searchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), path -> publish(updateTree(path, map)));
+				return null;
+			}
+
+			//edt
+			@Override
+			protected void process(List<DefaultMutableTreeNode> nodes) {
+				for (DefaultMutableTreeNode file : nodes) {
+					((DefaultTreeModel) tree.getModel()).reload(file);
 				}
+				fileTreeExpandedPaths.forEach(tree::expandPath);
+			}
 
-				//edt
-				@Override
-				protected void process(List<Path> files) {
-					System.out.println(files);
-					for (Path file : files) {
-						DefaultMutableTreeNode parentNode = updateTree(file, map);
-						((DefaultTreeModel) tree.getModel()).reload(parentNode);
-					}
-					fileTreeExpandedPaths.keySet().forEach(tree::expandPath);
-				}
-
-				@Override
-				protected void done() {
-					super.done();
-				}
-			}.execute();
-		}
+			@Override
+			protected void done() {
+				super.done();
+			}
+		}.execute();
 	}
 
 	/*
@@ -131,13 +140,6 @@ public class Form extends JFrame {
 	 */
 	private DefaultMutableTreeNode updateTree(Path path, Map<Path, DefaultMutableTreeNode> map) {
 		Path root = path.getRoot();
-
-		if (!map.containsKey(root)) {
-			DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(root);
-			treeRootNode.add(rootNode);
-			((DefaultTreeModel) tree.getModel()).reload(treeRootNode);
-			map.put(root, rootNode);
-		}
 
 		DefaultMutableTreeNode prevNode = new DefaultMutableTreeNode(path); //filename unique
 		DefaultMutableTreeNode parentNode = treeRootNode;
@@ -165,7 +167,7 @@ public class Form extends JFrame {
 	public static void main(String[] args) {
 		//edt
 		SwingUtilities.invokeLater(() -> {
-			WebLookAndFeel.install();
+			//WebLookAndFeel.install();
 
 			Form form = new Form();
 		});
@@ -191,6 +193,8 @@ public class Form extends JFrame {
 		tree = new JTree();
 		treeScrollPane.setViewportView(tree);
 		pathText = new JTextField();
+		pathText.setEditable(false);
+		pathText.setEnabled(true);
 		mPanel.add(pathText, new GridConstraints(0, 0, 1, 3, GridConstraints.ANCHOR_NORTHWEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
 		extension = new JTextField();
 		mPanel.add(extension, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_NORTH, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));

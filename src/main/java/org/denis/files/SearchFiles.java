@@ -21,13 +21,12 @@ public class SearchFiles {
 		BoyerMooreHorspool boyerMooreHorspool = new BoyerMooreHorspool();
 
 		Finder(String extension, String pattern, Consumer<Path> action) {
+			//сравниваем расширение файла
 			matcher = FileSystems.getDefault().getPathMatcher("glob:" + extension);
 			this.pattern = pattern;
 			this.action = action;
 		}
 
-		// Compares the glob pattern against
-		// the file or directory name.
 		private void find(Path file) {
 			Path name = file.getFileName();
 			if (name != null && matcher.matches(name)) {
@@ -35,10 +34,9 @@ public class SearchFiles {
 					//поиск подстроки
 					//использууем один поток, т.к. поиск очень быстрый и тем самым избавляемся от оверхеда управления потоков
 					if (boyerMooreHorspool.searchBytes(Files.readAllBytes(file), pattern.getBytes()) != -1)
+						//вызываем метод updateTree
 						action.accept(file);
 				} catch (IOException e) {
-					//throw new RuntimeException(e);
-					//System.err.println(e);
 				}
 			}
 		}
