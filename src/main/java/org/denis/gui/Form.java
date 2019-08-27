@@ -125,7 +125,7 @@ public class Form extends JFrame {
 							//TODO
 							//String filePath = selPath.toString().replaceAll("\\]|\\[", "").replaceFirst("Root, ", "").replaceAll(", ", Matcher.quoteReplacement(File.separator));
 
-							String filePath = selPath.getLastPathComponent().toString().replaceAll("\\]|\\[", "").replaceFirst("Root, ", "").replaceAll(", ", Matcher.quoteReplacement(File.separator));
+							String filePath = selPath.toString().replaceAll("\\]|\\[", "").replaceFirst("Root, ", "").replaceAll(", ", Matcher.quoteReplacement(File.separator));
 
 							System.out.println("filePath = " + filePath);
 
@@ -212,7 +212,7 @@ public class Form extends JFrame {
 	private DefaultMutableTreeNode updateTree(Path path, Map<Path, DefaultMutableTreeNode> map) {
 		Path root = path.getRoot();
 
-		DefaultMutableTreeNode prevNode = new DefaultMutableTreeNode(path); //filename unique
+		DefaultMutableTreeNode prevNode = new DefaultMutableTreeNode(path.getFileName()); //filename unique
 		DefaultMutableTreeNode parentNode = treeRootNode;
 
 		for (int i = path.getNameCount(); i >= 1; i--) {
@@ -276,7 +276,7 @@ public class Form extends JFrame {
 				int size = 17;
 				setPreferredSize(new Dimension(size, size));
 
-				URL imgURL = getClass().getClassLoader().getResource("gui-icons/close.png");
+				URL imgURL = getClass().getClassLoader().getResource("icons/close.png");
 				if (imgURL != null) {
 					Icon closeIcon = new ImageIcon(imgURL);
 					setIcon(closeIcon);
