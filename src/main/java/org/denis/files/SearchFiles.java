@@ -50,7 +50,6 @@ public class SearchFiles {
 		void find(Path file) {
 			Path name = file.getFileName();
 			if (name != null && matcher.matches(name)) {
-				System.out.println(file);
 				//поиск подстроки
 				//использууем один поток, т.к. поиск очень быстрый и тем самым избавляемся от оверхеда управления потоков
 				try (FileChannel filechanel = FileChannel.open(file)) {
