@@ -1,5 +1,6 @@
 package org.denis.gui;
 
+import com.alee.laf.WebLookAndFeel;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import org.denis.files.SearchFiles;
@@ -154,6 +155,8 @@ public class Form extends JFrame {
 				//}
 			}
 		});
+
+		fileTreeProgressBar.setVisible(false);
 	}
 
 	private void drawTree() {
@@ -174,13 +177,9 @@ public class Form extends JFrame {
 
 			@Override
 			protected Void doInBackground() throws Exception {
+				fileTreeProgressBar.setVisible(true);
 				fileTreeProgressBar.setIndeterminate(true);
-				SearchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), new Consumer<SearchFiles.SearchFileResult>() {
-					@Override
-					public void accept(SearchFiles.SearchFileResult searchFileResult) {
-						publish(updateTree(searchFileResult.getFile(), map));
-					}
-				});
+				SearchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), searchFileResult -> publish(updateTree(searchFileResult.getFile(), map)));
 				return null;
 			}
 
@@ -196,16 +195,10 @@ public class Form extends JFrame {
 			@Override
 			protected void done() {
 				fileTreeProgressBar.setIndeterminate(false);
+				fileTreeProgressBar.setVisible(false);
 			}
 		};
 		worker.execute();
-
-		//чтобы выводить исключения
-		try {
-			Void aVoid = worker.get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
 	}
 
 	/*
@@ -245,7 +238,7 @@ public class Form extends JFrame {
 	public static void main(String[] args) {
 		//edt
 		SwingUtilities.invokeLater(() -> {
-			//WebLookAndFeel.install();
+			WebLookAndFeel.install();
 
 			Form form = new Form();
 		});
@@ -443,6 +436,7 @@ public class Form extends JFrame {
 		treeScrollPane = new JScrollPane();
 		mPanel.add(treeScrollPane, new GridConstraints(3, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(200, 200), new Dimension(200, 600), null, 0, false));
 		fileTree = new JTree();
+		fileTree.setEnabled(true);
 		treeScrollPane.setViewportView(fileTree);
 		pathText = new JTextField();
 		pathText.setEditable(false);
@@ -471,6 +465,7 @@ public class Form extends JFrame {
 		fileContentTabbedPane = new JTabbedPane();
 		mPanel.add(fileContentTabbedPane, new GridConstraints(3, 2, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(200, 200), null, 0, false));
 		fileTreeProgressBar = new JProgressBar();
+		fileTreeProgressBar.setStringPainted(false);
 		mPanel.add(fileTreeProgressBar, new GridConstraints(4, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
 	}
 
