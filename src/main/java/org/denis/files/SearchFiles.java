@@ -5,8 +5,6 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -18,10 +16,10 @@ import static java.nio.file.FileVisitResult.TERMINATE;
 public class SearchFiles {
 
 	public static class SearchFileResult {
-		private Path file;
-		private boolean exceedSize;
+		private final Path file;
+		private final boolean exceedSize;
 
-		public SearchFileResult(Path file, boolean exceedSize) {
+		SearchFileResult(Path file, boolean exceedSize) {
 			this.file = file;
 			this.exceedSize = exceedSize;
 		}
@@ -38,10 +36,10 @@ public class SearchFiles {
 	static class Finder extends SimpleFileVisitor<Path> {
 
 		private final PathMatcher matcher;
-		private String pattern;
-		private Consumer<SearchFileResult> action;
-		private Supplier<Boolean> cancelAction;
-		private BoyerMooreHorspool boyerMooreHorspool = new BoyerMooreHorspool();
+		private final String pattern;
+		private final Consumer<SearchFileResult> action;
+		private final Supplier<Boolean> cancelAction;
+		private final BoyerMooreHorspool boyerMooreHorspool = new BoyerMooreHorspool();
 
 		Finder(String extension, String pattern, Consumer<SearchFileResult> action, Supplier<Boolean> cancelAction) {
 			//сравниваем расширение файла
@@ -62,9 +60,10 @@ public class SearchFiles {
 						return;
 					}
 					MappedByteBuffer mb = filechanel.map(FileChannel.MapMode.READ_ONLY, 0L, filechanel.size());
-					byte[] barray = new byte[(int) filechanel.size()];
-					mb.get(barray);
-					if (boyerMooreHorspool.searchBytes(barray, pattern.getBytes()) != -1) {
+					byte[] byteArray = new byte[(int) filechanel.size()];
+					mb.get(byteArray);
+
+					if (boyerMooreHorspool.searchBytes(byteArray, pattern.getBytes()) != -1) {
 						action.accept(new SearchFileResult(file, false));
 					}
 				}
@@ -91,7 +90,7 @@ public class SearchFiles {
 		}
 
 		@Override
-		public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+		public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
 			return CONTINUE;
 		}
 
@@ -102,6 +101,8 @@ public class SearchFiles {
 		}
 	}
 
+	//action - действие, выполняемое для каждого файла
+	//cancelAction - определяет когда нужно остановить выполнение walkFileTree
 	public static void traverseTree(Path dir, String extension, String pattern, Consumer<SearchFileResult> action, Supplier<Boolean> cancelAction) throws IOException {
 		Finder finder = new Finder(extension, pattern, action, cancelAction);
 		Files.walkFileTree(dir, finder);

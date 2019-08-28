@@ -34,7 +34,7 @@ public class ReadBigFileTableModel extends AbstractTableModel {
 		}
 	}
 
-	public void setFilePath(String filePath) throws IOException {
+	private void setFilePath(String filePath) {
 		linePositions.clear();
 		linePositions.add(0);
 		this.filePath = filePath;
@@ -52,7 +52,7 @@ public class ReadBigFileTableModel extends AbstractTableModel {
 		}
 	}
 
-	public void readFile() throws IOException {
+	private void readFile() throws IOException {
 		randomAccessFile = new RandomAccessFile(filePath, "r");
 
 		long fileLength = randomAccessFile.length();
@@ -120,33 +120,27 @@ public class ReadBigFileTableModel extends AbstractTableModel {
 		if (!isMousePressed) {
 			System.out.println("row = " + (i + 1));
 
-			switch (i1) {
-				case 0: {
-					return i + 1; //начать отчет номеров строк с 1 вместо 0
-				}
-				default:
-					if (0 <= i && i < getRowCount()) {
-						int startPos = linePositions.get(i);
-						int endPos = linePositions.get(i + 1) - 1;
-						byte[] line = new byte[endPos - startPos];
-						buffer.position(startPos);
-						buffer.get(line);
-						String s = new String(line, StandardCharsets.UTF_8); // UTF-8!
-						if (s.endsWith("\r")) {
-							s = s.substring(0, s.length() - 1);
-						}
-						return s;
-					} else
-						return "";
+			if (i1 == 0) {
+				return i + 1; //начать отчет номеров строк с 1 вместо 0
 			}
+			if (0 <= i && i < getRowCount()) {
+				int startPos = linePositions.get(i);
+				int endPos = linePositions.get(i + 1) - 1;
+				byte[] line = new byte[endPos - startPos];
+				buffer.position(startPos);
+				buffer.get(line);
+				String s = new String(line, StandardCharsets.UTF_8); // UTF-8!
+				if (s.endsWith("\r")) {
+					s = s.substring(0, s.length() - 1);
+				}
+				return s;
+			} else
+				return "";
 		} else {
-			switch (i1) {
-				case 0: {
-					return i + 1; //начать отчет номеров строк с 1 вместо 0
-				}
-				default:
-					return "data is loading . . .";
+			if (i1 == 0) {
+				return i + 1; //начать отчет номеров строк с 1 вместо 0
 			}
+			return "data is loading . . .";
 		}
 	}
 

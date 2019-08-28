@@ -1,8 +1,6 @@
 package org.denis.gui;
 
 import com.alee.laf.WebLookAndFeel;
-import com.intellij.uiDesigner.core.GridConstraints;
-import com.intellij.uiDesigner.core.GridLayoutManager;
 import org.denis.files.SearchFiles;
 
 import javax.swing.*;
@@ -23,54 +21,35 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 
-public class Form extends JFrame {
+class Form extends JFrame {
 
-	private JPanel mPanel;
-	private JButton directory;
-	private JTextField pathText;
+	private JPanel mainWindow;
+	private JButton browseButton;
+	private JTextField filePath;
 	private JTextField textToSearch;
 	private JTree fileTree;
 	private JTextField extension;
-	private JButton search;
+	private JButton searchButton;
 	private JScrollPane treeScrollPane;
 	private JTabbedPane fileContentTabbedPane;
 	private JProgressBar fileTreeProgressBar;
-	private JButton cancelButton;;
-	private JFileChooser fileChooser = new JFileChooser();
+	private JButton cancelButton;
+	private final JFileChooser fileChooser = new JFileChooser();
 
-	private Set<TreePath> fileTreeExpandedPaths = Collections.newSetFromMap(new ConcurrentHashMap<>());
+	private final Set<TreePath> fileTreeExpandedPaths = Collections.newSetFromMap(new ConcurrentHashMap<>());
 	private final List<FileContentTableScrollPane> fileContentTableScrollPaneList = new ArrayList<>();
 	private final DefaultMutableTreeNode treeRootNode = new DefaultMutableTreeNode(null);
 	private final Map<Path, DefaultMutableTreeNode> map = new HashMap<>();
 	private boolean isWorkerDone = false;
 	private SwingWorker<Void, DefaultMutableTreeNode> worker = null;
 
-	public Form() {
-		$$$setupUI$$$();
-		setContentPane(mPanel);
+	private Form() {
+		setContentPane(mainWindow);
 		setVisible(true);
 
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-		addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent e) {
-				System.out.println("Closed");
-				fileContentTableScrollPaneList.stream()
-						.map(FileContentTableScrollPane::getFileContentTable)
-						.map(FileContentTable::getModel)
-						.forEach(model -> {
-							model.close();
-							System.out.println("model is closed");
-						});
-				e.getWindow().dispose();
-			}
-		});
 
 		this.pack();
 		this.setVisible(true);
@@ -81,47 +60,65 @@ public class Form extends JFrame {
 
 		extension.setText(".log");
 
-		pathText.setText("Search ...");
+		filePath.setText("Search ...");
 
 		((DefaultTreeModel) fileTree.getModel()).setRoot(treeRootNode);
 		fileTree.setRootVisible(false);
 
-		directory.addActionListener(e -> {
-			fileChooser.setDialogTitle("Choose directory");
+		cancelButton.setEnabled(false);
+
+		this.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				fileContentTableScrollPaneList.stream()
+						.map(FileContentTableScrollPane::getFileContentTable)
+						.map(FileContentTable::getModel)
+						.forEach(ReadBigFileTableModel::close);
+				e.getWindow().dispose();
+			}
+		});
+
+		browseButton.addActionListener(e -> {
+			fileChooser.setDialogTitle("Choose browseButton");
 			fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 			int result = fileChooser.showOpenDialog(Form.this);
 			if (result == JFileChooser.APPROVE_OPTION)
-				pathText.setText(fileChooser.getSelectedFile().toString());
+				filePath.setText(fileChooser.getSelectedFile().toString());
 		});
 
-		cancelButton.addActionListener(e -> {
-			isWorkerDone = true;
-		});
+		cancelButton.addActionListener(e -> isWorkerDone = true);
 
-		search.addActionListener(e -> {
+		searchButton.addActionListener(e -> {
 
-			if (!pathText.getText().equals("Search ...")) {
+			if (!filePath.getText().equals("Search ...")) {
 
 				map.clear();
 				fileTreeExpandedPaths.clear();
 				treeRootNode.removeAllChildren();
 				((DefaultTreeModel) fileTree.getModel()).reload(treeRootNode);
 
-
 				worker = new SwingWorker<Void, DefaultMutableTreeNode>() {
 
+					//выполняетя поиск файлов и заполение дерева
 					@Override
 					protected Void doInBackground() throws Exception {
 						fileTreeProgressBar.setVisible(true);
 						fileTreeProgressBar.setIndeterminate(true);
-						search.setEnabled(false);
-						directory.setEnabled(false);
+						searchButton.setEnabled(false);
+						browseButton.setEnabled(false);
+						cancelButton.setEnabled(true);
 
-						SearchFiles.traverseTree(Paths.get(pathText.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), searchFileResult -> publish(updateTree(searchFileResult.getFile())), () -> isWorkerDone);
+						SearchFiles.traverseTree(Paths.get(filePath.getText()), extension.getText().isEmpty() ? "*" : extension.getText(), textToSearch.getText(), searchFileResult -> {
+							//обрабатываем файлы больше 2Gb
+							if (searchFileResult.isExceedSize())
+								System.out.println("File is too big");
+							else
+								publish(updateTree(searchFileResult.getFile()));
+						}, () -> isWorkerDone);
 						return null;
 					}
 
-					//edt
+					//перерисовка дерева
 					@Override
 					protected void process(List<DefaultMutableTreeNode> nodes) {
 						if (!isDone()) {
@@ -136,10 +133,10 @@ public class Form extends JFrame {
 					protected void done() {
 						fileTreeProgressBar.setIndeterminate(false);
 						fileTreeProgressBar.setVisible(false);
-						search.setEnabled(true);
-						directory.setEnabled(true);
+						searchButton.setEnabled(true);
+						browseButton.setEnabled(true);
 						isWorkerDone = false;
-						System.out.println("done");
+						cancelButton.setEnabled(false);
 					}
 				};
 
@@ -181,14 +178,7 @@ public class Form extends JFrame {
 					} else if (e.getClickCount() == 2) {
 						if (fileTree.getModel().isLeaf(selPath.getLastPathComponent())) {
 
-							//TODO
-							//String filePath = selPath.toString().replaceAll("\\]|\\[", "").replaceFirst("Root, ", "").replaceAll(", ", Matcher.quoteReplacement(File.separator));
-
-							//String filePath = selPath.toString().replaceAll("\\]|\\[", "").replaceFirst("Root, ", "").replaceAll(", ", Matcher.quoteReplacement(File.separator));
-
 							String filePath = "";
-
-							System.out.println(selPath);
 
 							for (int pathCompIndex = 1; pathCompIndex < selPath.getPathCount(); pathCompIndex++) {
 								filePath = filePath.concat(selPath.getPathComponent(pathCompIndex).toString());
@@ -197,7 +187,6 @@ public class Form extends JFrame {
 							}
 
 							if (!filePath.equals("")) {
-								System.out.println("filePath = " + filePath);
 
 								ReadBigFileTableModel fileContentTableModel = new ReadBigFileTableModel(filePath);
 								FileContentTable fileContentTable = new FileContentTable(fileContentTableModel);
@@ -213,12 +202,6 @@ public class Form extends JFrame {
 								fileContentTabbedPane.setSelectedIndex(fileContentTabbedPane.getTabCount() - 1);
 
 								fileContentTableScrollPaneList.add(fileContentTableScrollPane);
-
-								for (int i = 0; i < fileContentTableScrollPaneList.size(); i++) {
-									System.out.println("index = " + i + " pane = " + ((ButtonTabComponent) fileContentTabbedPane.getTabComponentAt(i)).getFilePath());
-								}
-
-								//fileContentTable.changeSelection(100, 1, false, false);
 							}
 
 						}
@@ -283,15 +266,11 @@ public class Form extends JFrame {
 		});
 	}
 
-	private void createUIComponents() {
-		// TODO: place custom component creation code here
-	}
-
 
 	private class ButtonTabComponent extends JPanel {
 		private final TreePath filePath;
 
-		public ButtonTabComponent(TreePath filePath) {
+		ButtonTabComponent(TreePath filePath) {
 			this.filePath = filePath;
 			String tabText = filePath.getLastPathComponent().toString();
 			JLabel label = new JLabel(tabText);
@@ -339,7 +318,7 @@ public class Form extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				int tabIndex = fileContentTabbedPane.indexOfTabComponent(ButtonTabComponent.this);
-				System.out.println("close button index = " + tabIndex);
+
 				if (tabIndex != -1) {
 					fileContentTableScrollPaneList.get(tabIndex).getFileContentTable().getModel().close();
 					fileContentTabbedPane.remove(tabIndex);
@@ -349,13 +328,13 @@ public class Form extends JFrame {
 
 		}
 
-		public TreePath getFilePath() {
+		TreePath getFilePath() {
 			return filePath;
 		}
 	}
 
 	private static class FileContentTableScrollPane extends JScrollPane {
-		public FileContentTableScrollPane(FileContentTable fileContentTable) {
+		FileContentTableScrollPane(FileContentTable fileContentTable) {
 			super(fileContentTable, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 			final int MAX_FILE_SIZE = 10_000;
 
@@ -363,7 +342,6 @@ public class Form extends JFrame {
 				@Override
 				public void mouseReleased(MouseEvent e) {
 					if (fileContentTable.getModel().getFileSize() > MAX_FILE_SIZE) {
-						System.out.println("Released");
 						fileContentTable.getModel().isMousePressed = false;
 						fileContentTable.getModel().fireTableDataChanged();
 					}
@@ -373,7 +351,6 @@ public class Form extends JFrame {
 				@Override
 				public void mousePressed(MouseEvent e) {
 					if (fileContentTable.getModel().getFileSize() > MAX_FILE_SIZE) {
-						System.out.println("Pressed");
 						fileContentTable.getModel().isMousePressed = true;
 					}
 				}
@@ -383,7 +360,6 @@ public class Form extends JFrame {
 				@Override
 				public void mouseReleased(MouseEvent e) {
 					if (fileContentTable.getModel().getFileSize() > MAX_FILE_SIZE) {
-						System.out.println("Released");
 						fileContentTable.getModel().isMousePressed = false;
 						fileContentTable.getModel().fireTableDataChanged();
 					}
@@ -393,7 +369,6 @@ public class Form extends JFrame {
 				@Override
 				public void mousePressed(MouseEvent e) {
 					if (fileContentTable.getModel().getFileSize() > MAX_FILE_SIZE) {
-						System.out.println("Pressed");
 						fileContentTable.getModel().isMousePressed = true;
 					}
 				}
@@ -445,8 +420,6 @@ public class Form extends JFrame {
 				else
 					row = getModel().getNumOfLongestRow();
 
-				System.out.println("longest row = " + row);
-
 				TableCellRenderer cellRenderer = getCellRenderer(row, colIndex);
 				Component c = prepareRenderer(cellRenderer, row, colIndex);
 				int width = c.getPreferredSize().width + getIntercellSpacing().width;
@@ -467,10 +440,7 @@ public class Form extends JFrame {
 		fileContentTabbedPane.addChangeListener(e -> {
 			int tabCount = fileContentTabbedPane.getTabCount();
 
-			System.out.println("tab changed");
-
 			if (tabCount > 0) {
-				System.out.println(fileContentTabbedPane.getSelectedIndex());
 				int selectedIndex = fileContentTabbedPane.getSelectedIndex();
 				if (fileContentTabbedPane.getTabComponentAt(selectedIndex) != null) {
 					for (int tabIndex = 0; tabIndex < tabCount; tabIndex++) {
@@ -479,60 +449,6 @@ public class Form extends JFrame {
 				}
 			}
 		});
-	}
-
-	/**
-	 * Method generated by IntelliJ IDEA GUI Designer
-	 * >>> IMPORTANT!! <<<
-	 * DO NOT edit this method OR call it in your code!
-	 *
-	 * @noinspection ALL
-	 */
-	private void $$$setupUI$$$() {
-		mPanel = new JPanel();
-		mPanel.setLayout(new GridLayoutManager(5, 4, new Insets(5, 5, 5, 5), -1, -1));
-		mPanel.putClientProperty("html.disable", Boolean.TRUE);
-		treeScrollPane = new JScrollPane();
-		mPanel.add(treeScrollPane, new GridConstraints(3, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(200, 200), new Dimension(200, 600), null, 0, false));
-		fileTree = new JTree();
-		fileTree.setEnabled(true);
-		treeScrollPane.setViewportView(fileTree);
-		pathText = new JTextField();
-		pathText.setEditable(false);
-		pathText.setEnabled(true);
-		pathText.setText("");
-		mPanel.add(pathText, new GridConstraints(0, 0, 1, 3, GridConstraints.ANCHOR_NORTHWEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
-		extension = new JTextField();
-		mPanel.add(extension, new GridConstraints(2, 1, 1, 2, GridConstraints.ANCHOR_NORTH, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
-		directory = new JButton();
-		directory.setHorizontalTextPosition(0);
-		directory.setLabel("Browse ...");
-		directory.setOpaque(false);
-		directory.setText("Browse ...");
-		mPanel.add(directory, new GridConstraints(0, 3, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-		final JLabel label1 = new JLabel();
-		label1.setText("Extension");
-		mPanel.add(label1, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-		final JLabel label2 = new JLabel();
-		label2.setText("Text to find");
-		mPanel.add(label2, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-		textToSearch = new JTextField();
-		mPanel.add(textToSearch, new GridConstraints(1, 1, 1, 3, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-		search = new JButton();
-		search.setText("Search");
-		mPanel.add(search, new GridConstraints(2, 3, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-		fileContentTabbedPane = new JTabbedPane();
-		mPanel.add(fileContentTabbedPane, new GridConstraints(3, 2, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(200, 200), null, 0, false));
-		fileTreeProgressBar = new JProgressBar();
-		fileTreeProgressBar.setStringPainted(false);
-		mPanel.add(fileTreeProgressBar, new GridConstraints(4, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-	}
-
-	/**
-	 * @noinspection ALL
-	 */
-	public JComponent $$$getRootComponent$$$() {
-		return mPanel;
 	}
 
 }
