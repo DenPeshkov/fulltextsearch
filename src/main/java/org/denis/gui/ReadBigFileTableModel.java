@@ -2,14 +2,12 @@ package org.denis.gui;
 
 import javax.swing.table.AbstractTableModel;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class ReadBigFileTableModel extends AbstractTableModel {
 
@@ -18,12 +16,11 @@ public class ReadBigFileTableModel extends AbstractTableModel {
 	private static final Class<?>[] COLUMN_CLASSES = {Integer.class, String.class};
 
 	private final List<Integer> linePositions = new ArrayList<>();
-	private RandomAccessFile randomAccessFile;
 	private MappedByteBuffer buffer;
 	private String filePath;
+	private int fileSize;
 	public boolean isMousePressed = false;
 	private int numOfLongestRow;
-	private long fileSize;
 
 	public ReadBigFileTableModel(String filePath) {
 		try {
@@ -41,52 +38,44 @@ public class ReadBigFileTableModel extends AbstractTableModel {
 	}
 
 	public void close() {
-		if (randomAccessFile != null) {
-			try {
-				randomAccessFile.close();
-				System.gc();
-			} catch (IOException ex) {
-				Logger.getLogger(ReadBigFileTableModel.class.getName()).log(Level.SEVERE, null, ex);
-			}
-			randomAccessFile = null;
-		}
+		buffer = null;
+		System.gc();
 	}
 
 	private void readFile() throws IOException {
-		randomAccessFile = new RandomAccessFile(filePath, "r");
+		try (FileChannel fileChannel = FileChannel.open(Paths.get(filePath))) {
 
-		long fileLength = randomAccessFile.length();
+			long fileLength = fileChannel.size();
 
-		if (fileLength > Integer.MAX_VALUE) {
-			throw new IOException("File too large, " + fileLength + " > " + Integer.MAX_VALUE);
-		}
+			if (fileLength > Integer.MAX_VALUE) {
+				throw new IOException("File too large, " + fileLength + " > " + Integer.MAX_VALUE);
+			}
 
-		int fileSize = (int) randomAccessFile.length();
+			int fileSize = (int) fileLength;
 
-		this.fileSize = fileSize;
+			this.fileSize = fileSize;
 
-		buffer = randomAccessFile.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, fileSize);
+			buffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, fileSize);
 
-		long lineLength = 0, maxLineLength = 0;
-		for (int pos = 0; pos < fileSize; ++pos) {
-			byte b = buffer.get();
-			lineLength++;
-			if (b == '\n') {
-				if (lineLength > maxLineLength) {
-					numOfLongestRow = linePositions.size() - 1;
-					maxLineLength = lineLength;
+			long lineLength = 0, maxLineLength = 0;
+			for (int pos = 0; pos < fileSize; ++pos) {
+				byte b = buffer.get();
+				lineLength++;
+				if (b == '\n') {
+					if (lineLength > maxLineLength) {
+						numOfLongestRow = linePositions.size() - 1;
+						maxLineLength = lineLength;
+					}
+					lineLength = 0;
+
+					linePositions.add(pos + 1);
 				}
-				lineLength = 0;
+			}
 
-				linePositions.add(pos + 1);
+			if (fileSize > linePositions.get(linePositions.size() - 1)) {
+				linePositions.add(fileSize); // Last line without newline character.
 			}
 		}
-
-		if (fileSize > linePositions.get(linePositions.size() - 1)) {
-			linePositions.add(fileSize); // Last line without newline character.
-		}
-
-		System.out.println("readFile отработал");
 	}
 
 	@Override
@@ -115,10 +104,14 @@ public class ReadBigFileTableModel extends AbstractTableModel {
 		return false; //ii == 1;
 	}
 
+	/*
+	Вызывается EDT в момент прорисовки таблицы.
+	Возвращается только часть файла, которая будет видна на экране.
+	Весь файл не возвращается, экономя время получения значения из буфера.
+	 */
 	@Override
 	public Object getValueAt(int i, int i1) {
 		if (!isMousePressed) {
-			System.out.println("row = " + (i + 1));
 
 			if (i1 == 0) {
 				return i + 1; //начать отчет номеров строк с 1 вместо 0
@@ -153,7 +146,7 @@ public class ReadBigFileTableModel extends AbstractTableModel {
 		return numOfLongestRow;
 	}
 
-	public long getFileSize() {
+	public int getFileSize() {
 		return fileSize;
 	}
 }
