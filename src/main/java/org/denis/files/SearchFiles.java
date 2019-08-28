@@ -8,10 +8,12 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import com.eaio.stringsearch.BoyerMooreHorspool;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
+import static java.nio.file.FileVisitResult.TERMINATE;
 
 public class SearchFiles {
 
@@ -38,16 +40,18 @@ public class SearchFiles {
 		private final PathMatcher matcher;
 		private String pattern;
 		private Consumer<SearchFileResult> action;
-		BoyerMooreHorspool boyerMooreHorspool = new BoyerMooreHorspool();
+		private Supplier<Boolean> cancelAction;
+		private BoyerMooreHorspool boyerMooreHorspool = new BoyerMooreHorspool();
 
-		Finder(String extension, String pattern, Consumer<SearchFileResult> action) {
+		Finder(String extension, String pattern, Consumer<SearchFileResult> action, Supplier<Boolean> cancelAction) {
 			//сравниваем расширение файла
-			matcher = FileSystems.getDefault().getPathMatcher("glob:*" + extension);
+			matcher = FileSystems.getDefault().getPathMatcher("glob:*." + extension);
 			this.pattern = pattern;
 			this.action = action;
+			this.cancelAction = cancelAction;
 		}
 
-		void find(Path file) {
+		void find(Path file) throws IOException {
 			Path name = file.getFileName();
 			if (name != null && matcher.matches(name)) {
 				//поиск подстроки
@@ -60,12 +64,9 @@ public class SearchFiles {
 					MappedByteBuffer mb = filechanel.map(FileChannel.MapMode.READ_ONLY, 0L, filechanel.size());
 					byte[] barray = new byte[(int) filechanel.size()];
 					mb.get(barray);
-					//byte[] barray = new byte[] {1,2,32,42,4,};
 					if (boyerMooreHorspool.searchBytes(barray, pattern.getBytes()) != -1) {
 						action.accept(new SearchFileResult(file, false));
 					}
-				} catch (IOException e) {
-					e.printStackTrace();
 				}
 			}
 		}
@@ -74,8 +75,13 @@ public class SearchFiles {
 		// method on each file.
 		@Override
 		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-			find(file);
-			System.gc();
+			if (cancelAction.get())
+				return TERMINATE;
+			try {
+				find(file);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			return CONTINUE;
 		}
 
@@ -96,8 +102,8 @@ public class SearchFiles {
 		}
 	}
 
-	public static void traverseTree(Path dir, String extension, String pattern, Consumer<SearchFileResult> action) throws IOException {
-		Finder finder = new Finder(extension, pattern, action);
+	public static void traverseTree(Path dir, String extension, String pattern, Consumer<SearchFileResult> action, Supplier<Boolean> cancelAction) throws IOException {
+		Finder finder = new Finder(extension, pattern, action, cancelAction);
 		Files.walkFileTree(dir, finder);
 	}
 }

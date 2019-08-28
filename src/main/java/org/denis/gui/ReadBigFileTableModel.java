@@ -20,10 +20,10 @@ public class ReadBigFileTableModel extends AbstractTableModel {
 	private final List<Integer> linePositions = new ArrayList<>();
 	private RandomAccessFile randomAccessFile;
 	private MappedByteBuffer buffer;
-	private int fileSize;
 	private String filePath;
 	public boolean isMousePressed = false;
 	private int numOfLongestRow;
+	private long fileSize;
 
 	public ReadBigFileTableModel(String filePath) {
 		try {
@@ -61,7 +61,9 @@ public class ReadBigFileTableModel extends AbstractTableModel {
 			throw new IOException("File too large, " + fileLength + " > " + Integer.MAX_VALUE);
 		}
 
-		fileSize = (int) randomAccessFile.length();
+		int fileSize = (int) randomAccessFile.length();
+
+		this.fileSize = fileSize;
 
 		buffer = randomAccessFile.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, fileSize);
 
@@ -155,5 +157,9 @@ public class ReadBigFileTableModel extends AbstractTableModel {
 
 	public int getNumOfLongestRow() {
 		return numOfLongestRow;
+	}
+
+	public long getFileSize() {
+		return fileSize;
 	}
 }
